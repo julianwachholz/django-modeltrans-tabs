@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "django-modeltrans-tabs"
+version = "0.1.0"
+description = "Tabbed UI for django-modeltrans"
+authors = ["Julian Wachholz <julian@wachholz.ch>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "modeltrans_tabs", from = "." }]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
