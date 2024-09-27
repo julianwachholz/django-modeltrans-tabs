@@ -2,40 +2,42 @@
     const currentLanguage = document.documentElement.lang;
 
     const addEventListeners = ({ defaultField, fields }) => {
-        const parent = fields[0].closest(".i18n-tabs");
+        const parent = fields[0] ? fields[0].closest(".i18n-tabs") : null;
 
         fields.forEach((field) => {
-            const fieldLanguage = field.dataset.i18nLang;
+            if (field) {
+                const fieldLanguage = field.dataset.i18nLang;
 
-            if (field.dataset.i18nDefault) {
-                // Synchronize value with the default field
-                field.addEventListener("input", () => {
-                    defaultField.value = field.value;
+                if (field.dataset.i18nDefault) {
+                    // Synchronize value with the default field
+                    field.addEventListener("input", () => {
+                        defaultField.value = field.value;
+                    });
+                }
+
+                const tabButton = parent.querySelector(
+                    `.i18n-button[data-i18n-lang=${fieldLanguage}]`
+                );
+                tabButton.addEventListener("click", () => {
+                    document.querySelectorAll(".i18n-button").forEach((button) => {
+                        if (button.dataset.i18nLang === fieldLanguage) {
+                            button.classList.add("active");
+                        } else {
+                            button.classList.remove("active");
+                        }
+                    });
+                    document.querySelectorAll(".i18n-tab").forEach((tab) => {
+                        if (tab.dataset.i18nLang === fieldLanguage) {
+                            tab.classList.remove("hidden");
+                        } else {
+                            tab.classList.add("hidden");
+                        }
+                    });
+
+                    field.focus();
+                    field.selectionStart = field.value.length;
                 });
             }
-
-            const tabButton = parent.querySelector(
-                `.i18n-button[data-i18n-lang=${fieldLanguage}]`
-            );
-            tabButton.addEventListener("click", () => {
-                document.querySelectorAll(".i18n-button").forEach((button) => {
-                    if (button.dataset.i18nLang === fieldLanguage) {
-                        button.classList.add("active");
-                    } else {
-                        button.classList.remove("active");
-                    }
-                });
-                document.querySelectorAll(".i18n-tab").forEach((tab) => {
-                    if (tab.dataset.i18nLang === fieldLanguage) {
-                        tab.classList.remove("hidden");
-                    } else {
-                        tab.classList.add("hidden");
-                    }
-                });
-
-                field.focus();
-                field.selectionStart = field.value.length;
-            });
         });
     };
 
@@ -58,21 +60,31 @@
                     const formsetIndex = event.target.id.match(/\d+/)[0];
 
                     const templateGroup = fieldGroups[groupName];
-                    const newGroupName = groupName.replace(
-                        "__prefix__",
-                        formsetIndex
-                    );
+                    let prefix = "__prefix__"
+                    let replaceIndex = formsetIndex
+                    const match = groupName.match(/^([a-zA-Z][^\s-]*)-([0-9]+)-([^\s-]+$)/)
+                    if (match) {
+                        prefix = `-${match[2]}-`
+                        replaceIndex = `-${formsetIndex}-`
+                    }
+                    const newGroupName = groupName.replace(prefix, replaceIndex);
+                    
 
                     fieldGroups[newGroupName] = {
                         defaultField: formsetContainer.querySelector(
                             `[name=${newGroupName}]`
                         ),
                         fields: templateGroup.fields.map((field) => {
+                            if (!field) return null
+                            let prefix = "__prefix__"
+                            let replaceIndex = formsetIndex
+                            const match = field.name.match(/^([a-zA-Z][^\s-]*)-([0-9]+)-([^\s-]+$)/)
+                            if (match) {
+                                prefix = `-${match[2]}-`
+                                replaceIndex = `-${formsetIndex}-`
+                            }
                             return formsetContainer.querySelector(
-                                `[name=${field.name.replace(
-                                    "__prefix__",
-                                    formsetIndex
-                                )}]`
+                                `[name=${field.name.replace(prefix, replaceIndex)}]`
                             );
                         }),
                         isTemplate: false,
@@ -189,14 +201,14 @@
                     tab.classList.add("hidden");
                 }
                 tabs.appendChild(tab);
-                const columnName = `column-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
-                const fieldName = `field-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
+                const columnName = `column-${field.dataset.i18nField}_${fieldLanguage.replace("-","_")}`
+                const fieldName = `field-${field.dataset.i18nField}_${fieldLanguage.replace("-","_")}`
                 const fieldParent = document.getElementById(`${field.id.split("-")[0]}-group`.substring(3))
                 if (fieldParent) {
                     if (fieldParent.querySelectorAll(`.${columnName}`).length) {
-                        fieldParent.querySelectorAll(`.${columnName}`).forEach( n => n.classList.add("hidden"))
-                        fieldParent.querySelectorAll(`.field-${field.dataset.i18nField}`).forEach( n => n.classList.add("hidden"))
-                        fieldParent.querySelectorAll(`.${fieldName}`).forEach( n => {
+                        fieldParent.querySelectorAll(`.${columnName}`).forEach(n => n.classList.add("hidden"))
+                        fieldParent.querySelectorAll(`.field-${field.dataset.i18nField}`).forEach(n => n.classList.add("hidden"))
+                        fieldParent.querySelectorAll(`.${fieldName}`).forEach(n => {
                             if (fieldLanguage !== currentLanguage) {
                                 n.classList.add("hidden")
                             }
