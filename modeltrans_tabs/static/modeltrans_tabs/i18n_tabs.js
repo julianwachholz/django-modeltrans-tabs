@@ -102,9 +102,15 @@
 
             if (!fieldGroups[groupName]) {
                 let selector = `[name=${groupName}]`;
-                const defaultField = field
+                let defaultField = field
                     .closest(".form-multiline")
                     ?.querySelector(selector);
+				if (!defaultField) {
+					defaultField = field
+					.parentElement
+					?.parentElement
+                    ?.querySelector(selector);
+				}
 
                 fieldGroups[groupName] = {
                     defaultField: defaultField,
@@ -117,13 +123,16 @@
 
         for (const group in fieldGroups) {
             const { defaultField, fields, isTemplate } = fieldGroups[group];
-            const parent = fields[0].closest(".form-multiline");
+            let parent = fields[0].closest(".form-multiline");
+			if (!parent) {
+				parent = fields[0].parentElement
+			}
 
             let errorlist = null;
             let helptext = null;
             if (defaultField) {
                 const groupLabel = document.createElement("label");
-                groupLabel.textContent = defaultField.labels[0].textContent;
+                groupLabel.textContent = defaultField.labels.length ? defaultField.labels[0].textContent : "";
                 errorlist = parent.querySelector(".errorlist");
 
                 if (defaultField.required) {
@@ -180,6 +189,20 @@
                     tab.classList.add("hidden");
                 }
                 tabs.appendChild(tab);
+				const columnName = `column-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
+				const fieldName = `field-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
+				const fieldParent = document.getElementById(`${field.id.split("-")[0]}-group`.substring(3))
+				if (fieldParent) {
+					if (fieldParent.querySelectorAll(`.${columnName}`).length) {
+						fieldParent.querySelectorAll(`.${columnName}`).forEach( n => n.classList.add("hidden"))
+						fieldParent.querySelectorAll(`.field-${field.dataset.i18nField}`).forEach( n => n.classList.add("hidden"))
+						fieldParent.querySelectorAll(`.${fieldName}`).forEach( n => {
+							if (fieldLanguage !== currentLanguage) {
+								n.classList.add("hidden")
+							}
+						})
+					}
+				}
             });
 
             if (!isTemplate) {
