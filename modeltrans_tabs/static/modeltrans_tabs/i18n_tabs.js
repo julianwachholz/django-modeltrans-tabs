@@ -105,12 +105,12 @@
                 let defaultField = field
                     .closest(".form-multiline")
                     ?.querySelector(selector);
-				if (!defaultField) {
-					defaultField = field
-					.parentElement
-					?.parentElement
+                if (!defaultField) {
+                    defaultField = field
+                    .parentElement
+                    ?.parentElement
                     ?.querySelector(selector);
-				}
+                }
 
                 fieldGroups[groupName] = {
                     defaultField: defaultField,
@@ -124,9 +124,9 @@
         for (const group in fieldGroups) {
             const { defaultField, fields, isTemplate } = fieldGroups[group];
             let parent = fields[0].closest(".form-multiline");
-			if (!parent) {
-				parent = fields[0].parentElement
-			}
+            if (!parent) {
+                parent = fields[0].parentElement
+            }
 
             let errorlist = null;
             let helptext = null;
@@ -189,20 +189,20 @@
                     tab.classList.add("hidden");
                 }
                 tabs.appendChild(tab);
-				const columnName = `column-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
-				const fieldName = `field-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
-				const fieldParent = document.getElementById(`${field.id.split("-")[0]}-group`.substring(3))
-				if (fieldParent) {
-					if (fieldParent.querySelectorAll(`.${columnName}`).length) {
-						fieldParent.querySelectorAll(`.${columnName}`).forEach( n => n.classList.add("hidden"))
-						fieldParent.querySelectorAll(`.field-${field.dataset.i18nField}`).forEach( n => n.classList.add("hidden"))
-						fieldParent.querySelectorAll(`.${fieldName}`).forEach( n => {
-							if (fieldLanguage !== currentLanguage) {
-								n.classList.add("hidden")
-							}
-						})
-					}
-				}
+                const columnName = `column-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
+                const fieldName = `field-${field.dataset.i18nField}_${fieldLanguage.replace('-','_')}`
+                const fieldParent = document.getElementById(`${field.id.split("-")[0]}-group`.substring(3))
+                if (fieldParent) {
+                    if (fieldParent.querySelectorAll(`.${columnName}`).length) {
+                        fieldParent.querySelectorAll(`.${columnName}`).forEach( n => n.classList.add("hidden"))
+                        fieldParent.querySelectorAll(`.field-${field.dataset.i18nField}`).forEach( n => n.classList.add("hidden"))
+                        fieldParent.querySelectorAll(`.${fieldName}`).forEach( n => {
+                            if (fieldLanguage !== currentLanguage) {
+                                n.classList.add("hidden")
+                            }
+                        })
+                    }
+                }
             });
 
             if (!isTemplate) {
