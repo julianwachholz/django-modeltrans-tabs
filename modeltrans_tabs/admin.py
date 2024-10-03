@@ -14,11 +14,11 @@ class TabbedLanguageMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.i18n_field = get_i18n_field(self.model)
+        self._i18n_field = get_i18n_field(self.model)
 
     def formfield_for_dbfield(self, db_field, request=None, **kwargs):
         field = super().formfield_for_dbfield(db_field, request, **kwargs)
-        if self.i18n_field is None:
+        if self._i18n_field is None:
             return field
 
         if isinstance(db_field, TranslatedVirtualField):
@@ -31,17 +31,28 @@ class TabbedLanguageMixin:
 
         return field
 
+    def i18n_field(self, field_name: str):
+        fields = [field_name]
+
+        if self._i18n_field is None:
+            return fields
+
+        for field in self._i18n_field.get_translated_fields():
+            if field.original_name == field_name and field.language is not None:
+                fields.append(field.name)
+        return tuple(fields)
+
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
 
-        if self.i18n_field is None or not fieldsets:
+        if self._i18n_field is None or not fieldsets:
             return fieldsets
 
         fieldsets = list(fieldsets)
 
         real_to_virtual_fields = {}
         virtual_field_names = set()
-        for field in self.i18n_field.get_translated_fields():
+        for field in self._i18n_field.get_translated_fields():
             virtual_field_names.add(field.name)
 
             # Remove _i18n fields from fieldsets
@@ -57,7 +68,9 @@ class TabbedLanguageMixin:
             field_names = []
             for field_name in fieldset.get("fields", []):
                 if field_name in real_to_virtual_fields:
-                    field_names.append([field_name] + sorted(real_to_virtual_fields[field_name]))
+                    field_names.append(
+                        [field_name] + sorted(real_to_virtual_fields[field_name])
+                    )
 
                 elif field_name not in virtual_field_names:
                     field_names.append(field_name)
