@@ -2,40 +2,42 @@
     const currentLanguage = document.documentElement.lang;
 
     const addEventListeners = ({ defaultField, fields }) => {
-        const parent = fields[0].closest(".i18n-tabs");
+        const parent = fields[0] ? fields[0].closest(".i18n-tabs") : null;
 
         fields.forEach((field) => {
-            const fieldLanguage = field.dataset.i18nLang;
+            if (field) {
+                const fieldLanguage = field.dataset.i18nLang;
 
-            if (field.dataset.i18nDefault) {
-                // Synchronize value with the default field
-                field.addEventListener("input", () => {
-                    defaultField.value = field.value;
+                if (field.dataset.i18nDefault) {
+                    // Synchronize value with the default field
+                    field.addEventListener("input", () => {
+                        defaultField.value = field.value;
+                    });
+                }
+
+                const tabButton = parent.querySelector(
+                    `.i18n-button[data-i18n-lang=${fieldLanguage}]`
+                );
+                tabButton.addEventListener("click", () => {
+                    document.querySelectorAll(".i18n-button").forEach((button) => {
+                        if (button.dataset.i18nLang === fieldLanguage) {
+                            button.classList.add("active");
+                        } else {
+                            button.classList.remove("active");
+                        }
+                    });
+                    document.querySelectorAll(".i18n-tab").forEach((tab) => {
+                        if (tab.dataset.i18nLang === fieldLanguage) {
+                            tab.classList.remove("hidden");
+                        } else {
+                            tab.classList.add("hidden");
+                        }
+                    });
+
+                    field.focus();
+                    field.selectionStart = field.value.length;
                 });
             }
-
-            const tabButton = parent.querySelector(
-                `.i18n-button[data-i18n-lang=${fieldLanguage}]`
-            );
-            tabButton.addEventListener("click", () => {
-                document.querySelectorAll(".i18n-button").forEach((button) => {
-                    if (button.dataset.i18nLang === fieldLanguage) {
-                        button.classList.add("active");
-                    } else {
-                        button.classList.remove("active");
-                    }
-                });
-                document.querySelectorAll(".i18n-tab").forEach((tab) => {
-                    if (tab.dataset.i18nLang === fieldLanguage) {
-                        tab.classList.remove("hidden");
-                    } else {
-                        tab.classList.add("hidden");
-                    }
-                });
-
-                field.focus();
-                field.selectionStart = field.value.length;
-            });
         });
     };
 
@@ -45,7 +47,7 @@
 
         i18nFields.forEach((field) => {
             let formset, formsetIndex;
-            let groupName = field.dataset.i18nField;
+            let translatedField = field.dataset.i18nField;
 
             // Check if we're in a formset
             const formsetsContainer = field.closest("[data-inline-formset]");
@@ -56,31 +58,45 @@
                 formsetsContainer.addEventListener("formset:added", (event) => {
                     const formsetContainer = event.target;
                     const formsetIndex = event.target.id.match(/\d+/)[0];
+                    let groupNames = [translatedField];
+                    if (event.target.querySelectorAll("fieldset .form-row").length) {
+                        groupNames = Object.keys(fieldGroups).filter(k => k.includes("__prefix__"))
+                    }
+                    groupNames.forEach(groupName => {
+                        const templateGroup = fieldGroups[groupName];
+                        let prefix = "__prefix__"
+                        let replaceIndex = formsetIndex
+                        const match = groupName.match(/^([a-zA-Z][^\s-]*)-([0-9]+)-([^\s-]+$)/)
+                        if (match) {
+                            prefix = `-${match[2]}-`
+                            replaceIndex = `-${formsetIndex}-`
+                        }
+                        const newGroupName = groupName.replace(prefix, replaceIndex);
 
-                    const templateGroup = fieldGroups[groupName];
-                    const newGroupName = groupName.replace(
-                        "__prefix__",
-                        formsetIndex
-                    );
+                        fieldGroups[newGroupName] = {
+                            defaultField: formsetContainer.querySelector(
+                                `[name=${newGroupName}]`
+                            ),
+                            fields: templateGroup.fields.map((field) => {
+                                if (!field) return null
+                                let prefix = "__prefix__"
+                                let replaceIndex = formsetIndex
+                                const match = field.name.match(/^([a-zA-Z][^\s-]*)-([0-9]+)-([^\s-]+$)/)
+                                if (match) {
+                                    prefix = `-${match[2]}-`
+                                    replaceIndex = `-${formsetIndex}-`
+                                }
+                                return formsetContainer.querySelector(
+                                    `[name=${field.name.replace(prefix, replaceIndex)}]`
+                                );
+                            }),
+                            isTemplate: false,
+                        };
 
-                    fieldGroups[newGroupName] = {
-                        defaultField: formsetContainer.querySelector(
-                            `[name=${newGroupName}]`
-                        ),
-                        fields: templateGroup.fields.map((field) => {
-                            return formsetContainer.querySelector(
-                                `[name=${field.name.replace(
-                                    "__prefix__",
-                                    formsetIndex
-                                )}]`
-                            );
-                        }),
-                        isTemplate: false,
-                    };
-
-                    // Re-run the script to add tabs to the new formset
-                    const { defaultField, fields } = fieldGroups[newGroupName];
-                    addEventListeners({ defaultField, fields });
+                        // Re-run the script to add tabs to the new formset
+                        const { defaultField, fields } = fieldGroups[newGroupName];
+                        addEventListeners({ defaultField, fields });
+                    })
                 });
                 formsetsContainer.dataset.formsetListener = true;
             }
@@ -97,33 +113,42 @@
                 } else {
                     formsetIndex = formsetContainer.id.match(/\d+/)[0];
                 }
-                groupName = `${formset.options.prefix}-${formsetIndex}-${field.dataset.i18nField}`;
+                translatedField = `${formset.options.prefix}-${formsetIndex}-${field.dataset.i18nField}`;
             }
 
-            if (!fieldGroups[groupName]) {
-                let selector = `[name=${groupName}]`;
-                const defaultField = field
+            if (!fieldGroups[translatedField]) {
+                let selector = `[name=${translatedField}]`;
+                let defaultField = field
                     .closest(".form-multiline")
                     ?.querySelector(selector);
+                if (!defaultField) {
+                    defaultField = field
+                    .parentElement
+                    ?.parentElement
+                    ?.querySelector(selector);
+                }
 
-                fieldGroups[groupName] = {
+                fieldGroups[translatedField] = {
                     defaultField: defaultField,
                     fields: [],
                     isTemplate: formsetIndex === "__prefix__",
                 };
             }
-            fieldGroups[groupName].fields.push(field);
+            fieldGroups[translatedField].fields.push(field);
         });
 
         for (const group in fieldGroups) {
             const { defaultField, fields, isTemplate } = fieldGroups[group];
-            const parent = fields[0].closest(".form-multiline");
+            let parent = fields[0].closest(".form-multiline");
+            if (!parent) {
+                parent = fields[0].parentElement
+            }
 
             let errorlist = null;
             let helptext = null;
             if (defaultField) {
                 const groupLabel = document.createElement("label");
-                groupLabel.textContent = defaultField.labels[0].textContent;
+                groupLabel.textContent = defaultField.labels.length ? defaultField.labels[0].textContent : "";
                 errorlist = parent.querySelector(".errorlist");
 
                 if (defaultField.required) {
@@ -180,6 +205,20 @@
                     tab.classList.add("hidden");
                 }
                 tabs.appendChild(tab);
+                const columnName = `column-${field.dataset.i18nField}_${fieldLanguage.replace("-","_")}`
+                const fieldName = `field-${field.dataset.i18nField}_${fieldLanguage.replace("-","_")}`
+                const fieldParent = document.getElementById(`${field.id.split("-")[0]}-group`.substring(3))
+                if (fieldParent) {
+                    if (fieldParent.querySelectorAll(`.${columnName}`).length) {
+                        fieldParent.querySelectorAll(`.${columnName}`).forEach(n => n.classList.add("hidden"))
+                        fieldParent.querySelectorAll(`.field-${field.dataset.i18nField}`).forEach(n => n.classList.add("hidden"))
+                        fieldParent.querySelectorAll(`.${fieldName}`).forEach(n => {
+                            if (fieldLanguage !== currentLanguage) {
+                                n.classList.add("hidden")
+                            }
+                        })
+                    }
+                }
             });
 
             if (!isTemplate) {
