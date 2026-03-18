@@ -45,9 +45,13 @@
         const i18nFields = document.querySelectorAll("[data-i18n-field]");
         const fieldGroups = {};
 
-        i18nFields.forEach((field) => {
+        for(const field of i18nFields) {
+            if ((field?.id ?? "").includes("__prefix__")) {
+                continue;
+            }
             let formset, formsetIndex;
             let translatedField = field.dataset.i18nField;
+            let defaultName, inlineId;
 
             // Check if we're in a formset
             const formsetsContainer = field.closest("[data-inline-formset]");
@@ -116,6 +120,17 @@
                 translatedField = `${formset.options.prefix}-${formsetIndex}-${field.dataset.i18nField}`;
             }
 
+            if (!formsetsContainer) {
+                const currentLang = field?.dataset?.i18nLang
+                defaultName = field.name.substring(0, field.name.length - 1 - currentLang.length)
+                inlineId = defaultName.substring(0, defaultName.length - 1 - translatedField.length)
+                if (inlineId) {
+                    if (document.querySelector(`.inline-related#${inlineId}`)) {
+                        translatedField = defaultName
+                    }
+                }
+            }
+
             if (!fieldGroups[translatedField]) {
                 let selector = `[name=${translatedField}]`;
                 let defaultField = field
@@ -127,6 +142,10 @@
                     ?.parentElement
                     ?.querySelector(selector);
                 }
+                if (!defaultField && inlineId && defaultName) {
+                    defaultField = document.querySelector(`.inline-related#${inlineId}`)
+                        ?.querySelector(`[name=${defaultName}]`)
+                }
 
                 fieldGroups[translatedField] = {
                     defaultField: defaultField,
@@ -135,7 +154,7 @@
                 };
             }
             fieldGroups[translatedField].fields.push(field);
-        });
+        }
 
         for (const group in fieldGroups) {
             const { defaultField, fields, isTemplate } = fieldGroups[group];
