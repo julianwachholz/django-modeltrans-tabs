@@ -9,7 +9,7 @@ packages = [{ include = "modeltrans_tabs", from = "." }]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-
+django-modeltrans = { git = "https://github.com/zostera/django-modeltrans.git", rev = "7cd0a2b7"}
 
 [build-system]
 requires = ["poetry-core"]

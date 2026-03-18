@@ -34,8 +34,10 @@
                         }
                     });
 
-                    field.focus();
-                    field.selectionStart = field.value.length;
+                    if (field.type !== "file") {
+                        field.focus();
+                        field.selectionStart = field.value.length;
+                    }
                 });
             }
         });
@@ -146,6 +148,22 @@
 
             let errorlist = null;
             let helptext = null;
+            let fileFields = {}
+            if (defaultField?.parentNode?.querySelector("input[type=file]")) {
+                let rowName = defaultField.name
+                fileFields[rowName] = defaultField.parentNode
+                const match = rowName.match(/^([a-zA-Z][^\s-]*)-([0-9]+)-([^\s-]+$)/)
+                if (Array.isArray(match)) {
+                    rowName =  match.length > 3 ? match[3] : rowName
+                }
+                document.querySelectorAll(`.form-row.field-${rowName} input[type=file]`).forEach( n => {
+                    // only those with values
+                    if (n.parentNode.classList.contains("file-upload")) {
+                        fileFields[n.name] = n.parentNode
+                    }
+                })
+            }
+
             if (defaultField) {
                 const groupLabel = document.createElement("label");
                 groupLabel.textContent = defaultField.labels.length ? defaultField.labels[0].textContent : "";
@@ -218,6 +236,17 @@
                             }
                         })
                     }
+                }
+
+                if (field.type === "file" && Object.keys(fileFields).indexOf(field.name) >= 0) {
+                    const repl = fileFields[field.name]
+                    const fieldParent = field.parentNode
+                    const defaultFileInp = repl.querySelector("input[type=file]")
+                    fieldParent.appendChild(repl)
+                    if (defaultFileInp) {
+                        defaultFileInp.remove()
+                    }
+                    repl.appendChild(field)
                 }
             });
 
