@@ -1,6 +1,34 @@
+from django.conf import settings
 from modeltrans.conf import get_default_language
 from modeltrans.fields import TranslatedVirtualField
 from modeltrans.translator import get_i18n_field
+
+
+def get_languages():
+    """The languages in the order of MODELTRANS_AVAILABLE_LANGUAGES, or of LANGUAGES when that
+    isn't set, which is what modeltrans uses too. The default language comes first if neither
+    lists it (modeltrans always has it: it's the original field)."""
+    configured = getattr(settings, "MODELTRANS_AVAILABLE_LANGUAGES", None)
+    if configured is None:
+        configured = [code for code, _name in settings.LANGUAGES]
+    languages = list(dict.fromkeys(configured))
+    default = get_default_language()
+    if default not in languages:
+        languages.insert(0, default)
+    return languages
+
+
+def sort_by_language(fields):
+    """Translated fields in the configured language order (see get_languages)."""
+    languages = get_languages()
+
+    def position(field):
+        try:
+            return languages.index(field.language)
+        except ValueError:
+            return len(languages)  # not configured: last, in their own order
+
+    return sorted(fields, key=position)
 
 
 class TabbedLanguageMixin:
@@ -37,9 +65,12 @@ class TabbedLanguageMixin:
         if self._i18n_field is None:
             return fields
 
-        for field in self._i18n_field.get_translated_fields():
-            if field.original_name == field_name and field.language is not None:
-                fields.append(field.name)
+        translated = [
+            field
+            for field in self._i18n_field.get_translated_fields()
+            if field.original_name == field_name and field.language is not None
+        ]
+        fields += [field.name for field in sort_by_language(translated)]
         return tuple(fields)
 
     def get_fieldsets(self, request, obj=None):
@@ -52,7 +83,7 @@ class TabbedLanguageMixin:
 
         real_to_virtual_fields = {}
         virtual_field_names = set()
-        for field in self._i18n_field.get_translated_fields():
+        for field in sort_by_language(self._i18n_field.get_translated_fields()):
             virtual_field_names.add(field.name)
 
             # Remove _i18n fields from fieldsets
@@ -69,7 +100,7 @@ class TabbedLanguageMixin:
             for field_name in fieldset.get("fields", []):
                 if field_name in real_to_virtual_fields:
                     field_names.append(
-                        [field_name] + sorted(real_to_virtual_fields[field_name])
+                        [field_name] + real_to_virtual_fields[field_name]
                     )
 
                 elif field_name not in virtual_field_names:

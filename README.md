@@ -44,6 +44,8 @@ class MyModelAdmin(TabbedLanguageMixin, admin.ModelAdmin):
 
 ## Usage
 
+The tabs are in the order of `MODELTRANS_AVAILABLE_LANGUAGES`, or of `LANGUAGES` when that isn't set, the same setting django-modeltrans uses. If neither lists the default language (`LANGUAGE_CODE`), its tab comes first.
+
 By default, the admin mixin will modify your fieldset to incorporate your translated fields. No changes are required in this case.
 
 If you use a customized fieldset on your `ModelAdmin`, you will need to update the field list to include all languages for a translated field as a tuple.
@@ -89,4 +91,13 @@ class MyModelAdmin(TabbedLanguageMixin, admin.ModelAdmin):
             }
         )
     )
+```
+
+
+## Development
+
+Run the tests with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv run --no-project --with "django>=5.2" --with "django-modeltrans>=0.10" --with pytest --with pytest-django pytest
 ```
